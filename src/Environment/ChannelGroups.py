@@ -1,5 +1,5 @@
 import Environment.Channel as channel
-# import Channel as channel
+
 class ChannelGroups():
     def creategroup(self, type, nChannels, freq_diff, BW, startfreq,CR, minDR,maxDR):
         channels_list=[]

@@ -15,3 +15,4 @@ class Channel():
         self.minDR = minDR
         self.maxDR = maxDR
         self.taken=False
+        self.devices_using_me=[]

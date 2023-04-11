@@ -9,3 +9,5 @@ class TransmissionParameter:
 
     def getTsym(self):
         return 2 ** self.SF / self.BW; #duration that is the airtime of a single LoRa chirp
+    def __str__(self): 
+        return "BW: % s, TP: % s, CF: % s, SF: % s, CR: % s" % (self.BW, self.TP,self.CF, self.SF, self.CR) 
