@@ -10,13 +10,13 @@ import numpy as np
 
 class Device:
     def __init__(self, deviceid=None):
-        print("setting up device")
-        self.data=10*1000*8 #10MB in bits
+        # print("setting up device")
+        self.data=utils.DEVICE_DATA
         self.used_channels= {}
         self.deviceid=deviceid
         self.Transmission = Transmission.Transmission(deviceid,self)
         self.trans_params = transparams(TP=0,CF=0,CR=4,SF=7,BW=125)
-        self.time_slot=10
+        self.time_slot=utils.TIME_SLOT
         self.CadDone=False
         self.CadDetected =False;
         self.CadRetry=3

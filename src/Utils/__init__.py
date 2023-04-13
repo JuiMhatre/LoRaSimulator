@@ -1,3 +1,4 @@
+import math
 DWELL_TIME=400 #400ms
 BIT_RATE= { #https://www.rfwireless-world.com/calculators/LoRa-Data-Rate-Calculator.html
     125 :{
@@ -15,7 +16,13 @@ BIT_RATE= { #https://www.rfwireless-world.com/calculators/LoRa-Data-Rate-Calcula
         12:980
 }
 }
-nDevices=10
+DEVICE_DATA= 10*1000*8 #10KB in bitss
+TIME_SLOT = 10
+DEV_SELECTED_SCHEDULE={}
+MIN_BIT_RATE= 11 #https://unsigned.io/understanding-lora-parameters/#:~:text=LoRa%20is%20a%20very%20flexible,mere%2011%20bits%20per%20second.
+MIN_SCHEDULES = math.ceil(DEVICE_DATA / (MIN_BIT_RATE * TIME_SLOT))
+nDevices=700
+ALGO_NAME="DDPG"
 READY_DEVICES=[]
 TX_POW ={ #in dbm
     0:30,
@@ -68,3 +75,4 @@ IS10 =[-19, -18, -17, 1, -17, -18]
 IS11 = [-22, -22, -21, -20, 1, -20]
 IS12 = [-25, -25, -25, -24, -23, 1]
 IsoThresholds = [IS7, IS8, IS9, IS10, IS11, IS12]
+OPTIMIZATION_TYPE = "ENERGY"  #{LATENCY, ENERGY, PDR}

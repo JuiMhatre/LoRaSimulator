@@ -4,15 +4,19 @@ import random
 class Scheduler:
     def __init__(self):
         pass
-    def inputToScheduler(self,devlist_ready_to_transmit):
-        self.devlist=devlist_ready_to_transmit
-        pass
+    def inputToScheduler(self,scheduler_input):
+        self.devlist=scheduler_input.SchedulerInput.device_list
+        self.algorithm= scheduler_input.SchedulerInput.algorithm_name
+        
     def sendtransmissionschedule(self):
         self.dev_wise_params={}
-        self.RL_SchedulerDemo(self)
+        if self.algorithm == "PseudoRandom":
+            self.PseudoRandom()
+        if self.algorithm == "LoRaDDPG":
+            self.LoRaDDPG()
         return self.dev_wise_params, self.noOfRetry 
     
-    def RL_SchedulerDemo(self):
+    def PseudoRandom(self):
         for dev in self.devlist:
             tp = utils.TX_POW[random.randint(0,14)]
             bw = utils.BANDWIDTH[random.randint(0,1)]
@@ -21,3 +25,6 @@ class Scheduler:
             cf= random.randint(0,71)
             self.dev_wise_params[dev]= trans_params(tp,cf,cr,sf,bw) #get from algorithm
         self.noOfRetry=3
+        
+    def LoRaDDPG(self):
+        pass

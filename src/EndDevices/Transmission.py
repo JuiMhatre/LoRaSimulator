@@ -11,7 +11,7 @@ class Transmission (threading.Thread):
       self.device = device
       
     def prepareTransmission(self):
-       print("preparing transmission......")
+    #    print("preparing transmission......")
        if self.device.data > 0:
            used_up_channel = self.device.used_channels.get(self.device.channel.startfreq, 0)
            if used_up_channel < utils.DWELL_TIME:
@@ -26,9 +26,9 @@ class Transmission (threading.Thread):
                             data_sent = self.getBitRate() * time_to_transmit
                             if data_sent > self.device.data:
                                 data_sent = self.device.data
-                            print("data sent  by device "+str(self.device.deviceid)+" is :"+str(data_sent)+"having data "+str(self.device.data))
+                            # print("data sent  by device "+str(self.device.deviceid)+" is :"+str(data_sent)+"having data "+str(self.device.data))
                             self.device.data = self.device.data - data_sent
-                            time.sleep(time_to_transmit)
+                            # time.sleep(time_to_transmit)
                             self.device.energy = self.device.energy + (time_to_transmit * utils.TRANSMISSION_CURRENT * utils.VOLTAGE)
                             self.device.used_channels[self.device.channel.startfreq] = used_up_channel + time_to_transmit
                             self.resetCAD()
@@ -38,11 +38,12 @@ class Transmission (threading.Thread):
                     else:
                         return 5 ,False               
                 else:
-                    print("Cannot transmit since RSSI < SENSITIVITY !!")
-                    return 3, False
-               
+                    # print("Cannot transmit since RSSI < SENSITIVITY !!")
+                    return 3, False               
            else:
                return 4, False
+       else:
+           return 1, True
     def getBitRate(self):
         #https://www.rfwireless-world.com/calculators/LoRa-Data-Rate-Calculator.html
         SF = self.device.trans_params.SF
@@ -55,7 +56,7 @@ class Transmission (threading.Thread):
                 if otherdevices.getRSSI() > self.device.getRSSI():
                     print("Other Already Transmitting device "+str(otherdevices.deviceid)+" has higher strength and that your device "+ str(self.device.deviceid))
                     return False
-                if math.abs(otherdevices.getRSSI() - self.device.getRSSI()) < utils.IsoThresholds[otherdevices.trans_params.SF -7][self.device.trans_params.SF-7]:
+                if abs(otherdevices.getRSSI() - self.device.getRSSI()) < utils.IsoThresholds[otherdevices.trans_params.SF -7][self.device.trans_params.SF-7]:
                     return False
         return True
         
@@ -77,8 +78,8 @@ class Transmission (threading.Thread):
         return cad_status_free
     
     def CADOperation(self): #https://lora-developers.semtech.com/documentation/tech-papers-and-guides/channel-activity-detection-ensuring-your-lora-packets-are-sent/how-to-ensure-your-lora-packets-are-sent-properly/
-        inoperableTime = (32.0/self.device.trans_params.BW)/10**3; #milliseconds
-        time.sleep(inoperableTime)
+        inoperableTime = (32.0/self.device.trans_params.BW) * 10**-3; #milliseconds
+        # time.sleep(inoperableTime)
         self.device.energy = self.device.energy + (inoperableTime * utils.SLEEP_CURRENT * utils.VOLTAGE)
         cad_status_free = self.CADModeReady()
         self.CADProcess(cad_status_free)
@@ -86,13 +87,13 @@ class Transmission (threading.Thread):
 
     def CADModeReady(self):
         valid_rssi_time = self.device.trans_params.getTsym()/10**3
-        time.sleep(valid_rssi_time)
+        # time.sleep(valid_rssi_time)
         self.device.energy = self.device.energy + (valid_rssi_time * utils.SLEEP_CURRENT * utils.VOLTAGE)
         return not self.device.channel.taken
     
     def CADProcess(self, cad_status_free):
         process_time = self.device.trans_params.getTsym()/(175 * 10**6)
-        time.sleep(process_time)
+        # time.sleep(process_time)
         self.device.energy = self.device.energy + (process_time * utils.SLEEP_CURRENT * utils.VOLTAGE)
         self.device.CadDone=True
         self.device.CadDetected=cad_status_free
@@ -103,6 +104,7 @@ class Transmission (threading.Thread):
         self.device.channel.taken=False
         self.device.CadDone=False
         self.device.CadDetected=False
+        # print(str(self.device.deviceid)+" ", self.device.channel.devices_using_me," ",self.device)
         self.device.channel.devices_using_me.remove(self.device)
 
     def run(self):
@@ -111,19 +113,22 @@ class Transmission (threading.Thread):
     def startTransmission(self):
         timestart = time.time()
         print ("Transmitting Device.... " + str(self.threadID))
+                
         returncode, transmitted_status = self.prepareTransmission()
         timeend= time.time()
         self.device.time_taken =self.device.time_taken + (timeend-timestart)
-        if transmitted_status:
-            utils.total_delay+=self.device.time_taken
+        if returncode !=4:
             utils.total_energy+=self.device.energy
-            utils.READY_DEVICES.remove(self.device)
-            self.device.time_taken=0
             self.device.energy=0
+            utils.total_delay+=self.device.time_taken
+            self.device.time_taken=0
+        if transmitted_status:
+            utils.READY_DEVICES.remove(self.device)            
             if self.device.data >0:
                 utils.READY_DEVICES.append(self.device)
             else:
                 print ("Ending Transmission of device " + str(self.threadID))
+                pass
         elif returncode ==2:
             print("Failed Transmission of device " + str(self.threadID) +" due to capture Effect")
         elif returncode ==3:
