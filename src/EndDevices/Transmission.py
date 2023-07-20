@@ -23,12 +23,12 @@ class Transmission (threading.Thread):
                 if not self.checkPathLoss():
                     if self.CADRetry(self.device.CadRetry): #channel sensing
                         if self.checkCaptureEffect():
-                            data_sent = self.getBitRate() * time_to_transmit
+                            data_sent = self.getBitRate() * time_to_transmit/1000
                             if data_sent > self.device.data:
                                 data_sent = self.device.data
-                            # print("data sent  by device "+str(self.device.deviceid)+" is :"+str(data_sent)+"having data "+str(self.device.data))
                             self.device.data = self.device.data - data_sent
-                            # time.sleep(time_to_transmit)
+                            time.sleep(time_to_transmit)
+                            self.device.time_taken= self.device.time_taken + time_to_transmit
                             self.device.energy = self.device.energy + (time_to_transmit * utils.TRANSMISSION_CURRENT * utils.VOLTAGE)
                             self.device.used_channels[self.device.channel.startfreq] = used_up_channel + time_to_transmit
                             self.resetCAD()
@@ -52,7 +52,7 @@ class Transmission (threading.Thread):
         return SF * ((4/(4+CR))/(2**SF/BW))* 1000      
     def checkCaptureEffect(self): #CAD is not fully reliable, hence add capture effect https://www.mdpi.com/1424-8220/21/3/825
         for otherdevices in self.device.channel.devices_using_me:
-            if self.checkBW_SF(otherdevices, self.device) and otherdevices.deviceid != self.device.deviceid :                
+            if self.checkBW_SF_CF(otherdevices, self.device) and otherdevices.deviceid != self.device.deviceid :                
                 if otherdevices.getRSSI() > self.device.getRSSI():
                     print("Other Already Transmitting device "+str(otherdevices.deviceid)+" has higher strength and that your device "+ str(self.device.deviceid))
                     return False
@@ -60,26 +60,30 @@ class Transmission (threading.Thread):
                     return False
         return True
         
-    def checkBW_SF(self, dev1, dev2):
-        return (dev1.trans_params.BW == dev2.trans_params.BW and dev1.trans_params.SF == dev2.trans_params.SF)
+    def checkBW_SF_CF(self, dev1, dev2):
+        return (dev1.trans_params.BW == dev2.trans_params.BW and dev1.trans_params.SF == dev2.trans_params.SF and dev1.trans_params.CF == dev2.trans_params.CF)
         
     def checkPathLoss(self): #https://www.techplayon.com/lora-link-budget-sensitivity-calculations-example-explained/
         self.sensitivity = -174 +10 * math.log(self.device.trans_params.BW) + utils.RECEIVER_NOISE +utils.SNR
+        self.device.linkbudget = self.getLinkBudget()
         return self.device.rssi < self.sensitivity #True : packet lost
         
     def getLinkBudget(self):
-        return self.device.trans_params.TP - self.sensitivity
+        return self.sensitivity - self.device.trans_params.TP  
     
     def CADRetry(self, noOfRetry):
         cad_status_free = False
         while noOfRetry>0 and not cad_status_free:
             cad_status_free = self.CADOperation()
             noOfRetry -=1  
+            if not cad_status_free:
+                time.sleep(utils.BACKOFF_TIMER)
         return cad_status_free
     
     def CADOperation(self): #https://lora-developers.semtech.com/documentation/tech-papers-and-guides/channel-activity-detection-ensuring-your-lora-packets-are-sent/how-to-ensure-your-lora-packets-are-sent-properly/
-        inoperableTime = (32.0/self.device.trans_params.BW) * 10**-3; #milliseconds
-        # time.sleep(inoperableTime)
+        inoperableTime = (32.0/self.device.trans_params.BW);
+        time.sleep(inoperableTime)
+        self.device.time_taken= self.device.time_taken + inoperableTime
         self.device.energy = self.device.energy + (inoperableTime * utils.SLEEP_CURRENT * utils.VOLTAGE)
         cad_status_free = self.CADModeReady()
         self.CADProcess(cad_status_free)
@@ -87,13 +91,15 @@ class Transmission (threading.Thread):
 
     def CADModeReady(self):
         valid_rssi_time = self.device.trans_params.getTsym()/10**3
-        # time.sleep(valid_rssi_time)
+        time.sleep(valid_rssi_time)
+        self.device.time_taken= self.device.time_taken + valid_rssi_time
         self.device.energy = self.device.energy + (valid_rssi_time * utils.SLEEP_CURRENT * utils.VOLTAGE)
         return not self.device.channel.taken
     
     def CADProcess(self, cad_status_free):
         process_time = self.device.trans_params.getTsym()/(175 * 10**6)
-        # time.sleep(process_time)
+        time.sleep(process_time)
+        self.device.time_taken= self.device.time_taken + process_time
         self.device.energy = self.device.energy + (process_time * utils.SLEEP_CURRENT * utils.VOLTAGE)
         self.device.CadDone=True
         self.device.CadDetected=cad_status_free
@@ -111,20 +117,21 @@ class Transmission (threading.Thread):
         self.startTransmission()
         
     def startTransmission(self):
-        timestart = time.time()
-        print ("Transmitting Device.... " + str(self.threadID))
-                
+        # timestart = time.time()
+        # print ("Transmitting Device.... " + str(self.threadID))
         returncode, transmitted_status = self.prepareTransmission()
-        timeend= time.time()
-        self.device.time_taken =self.device.time_taken + (timeend-timestart)
+        # timeend= time.time()
+        # self.device.time_taken =self.device.time_taken + (timeend-timestart)
         if returncode !=4:
             utils.total_energy+=self.device.energy
             self.device.energy=0
             utils.total_delay+=self.device.time_taken
+            utils.total_linkbudget +=self.device.linkbudget
             self.device.time_taken=0
         if transmitted_status:
             utils.READY_DEVICES.remove(self.device)            
             if self.device.data >0:
+                print("Sucessfully transmitted by device "+str(self.device.deviceid))
                 utils.READY_DEVICES.append(self.device)
             else:
                 print ("Ending Transmission of device " + str(self.threadID))
@@ -136,4 +143,6 @@ class Transmission (threading.Thread):
         elif returncode ==4:
             print("Failed Transmission of device " + str(self.threadID) +" New Channel Required")
         elif returncode ==5:
+            utils.READY_DEVICES.remove(self.device)
+            utils.FAILED_DEVICES.append(self.device)
             print("Failed Transmission of device " + str(self.threadID) +" Out of CAD Retries.")

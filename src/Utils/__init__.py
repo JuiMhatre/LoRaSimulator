@@ -16,14 +16,15 @@ BIT_RATE= { #https://www.rfwireless-world.com/calculators/LoRa-Data-Rate-Calcula
         12:980
 }
 }
-DEVICE_DATA= 10*1000*8 #10KB in bitss
-TIME_SLOT = 10
+DEVICE_DATA= 10*8 #10B in bitss
+TIME_SLOT = 10 #10ms
 DEV_SELECTED_SCHEDULE={}
 MIN_BIT_RATE= 11 #https://unsigned.io/understanding-lora-parameters/#:~:text=LoRa%20is%20a%20very%20flexible,mere%2011%20bits%20per%20second.
 MIN_SCHEDULES = math.ceil(DEVICE_DATA / (MIN_BIT_RATE * TIME_SLOT))
-nDevices=700
-ALGO_NAME="DDPG"
+nDevices=10
+ALGO_NAME="DDPG_UPDT"
 READY_DEVICES=[]
+FAILED_DEVICES=[]
 TX_POW ={ #in dbm
     0:30,
     1:28,
@@ -44,9 +45,14 @@ TX_POW ={ #in dbm
 BANDWIDTH=[125, 500]
 SF=[7,8,9,10,11,12]
 CR = [1,2,3,4]
-GATEWAY_DEVICE_LIMIT=10
-NETWORK_AREA_MAX_X =1000
-NETWORK_AREA_MAX_Y =1000
+N_TX = 15
+N_CF = 72
+N_CR = 4
+N_BW = 2
+N_SF = 7
+GATEWAY_DEVICE_LIMIT=700
+NETWORK_AREA_MAX_X =480
+NETWORK_AREA_MAX_Y =480
 NETWORK_AREA_MIN_X =0
 NETWORK_AREA_MIN_Y =0
 GATEWAY_LOCX=50
@@ -61,12 +67,13 @@ VOLTAGE= 3.0
 D0 =40.0
 GAMMA = 2.08
 LPLD0 = 127.41
-VARIANCE=2.0
+VARIANCE=3.57
 
 
 #Results
 total_delay=0.0
 total_energy=0
+total_linkbudget=0
 
 IS7 = [1, -8, -9, -9, -9, -9]
 IS8 = [-11, 1, -11, -12, -13, -13]
@@ -76,3 +83,4 @@ IS11 = [-22, -22, -21, -20, 1, -20]
 IS12 = [-25, -25, -25, -24, -23, 1]
 IsoThresholds = [IS7, IS8, IS9, IS10, IS11, IS12]
 OPTIMIZATION_TYPE = "ENERGY"  #{LATENCY, ENERGY, PDR}
+BACKOFF_TIMER=2

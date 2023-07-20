@@ -24,6 +24,8 @@ class Device:
         self.locY = random.randint(utils.NETWORK_AREA_MIN_Y, utils.NETWORK_AREA_MAX_Y)
         self.time_taken=0
         self.energy=0
+        self.linkbudget=0
+        self.cadRepeatations=0
         
         
     def setTransmissionParams(self, transparam, noOfRetry):
