@@ -17,3 +17,8 @@ Important modules include:
 ## Important Files
 1. src/Utils/__init__.py : Environment Setup parameters
 2. src/__init__.py: Specifies how to call the required algorithm
+
+
+##Links
+Related reference and documentations:
+https://digitalcommons.kennesaw.edu/cs_etd/59/
