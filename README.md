@@ -19,6 +19,6 @@ Important modules include:
 2. src/__init__.py: Specifies how to call the required algorithm
 
 
-##Links
+## Links
 Related reference and documentations:
 https://digitalcommons.kennesaw.edu/cs_etd/59/
